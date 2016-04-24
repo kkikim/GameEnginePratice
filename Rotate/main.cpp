@@ -31,64 +31,57 @@ public:
 class MainListener : public FrameListener {
   OIS::Keyboard *mKeyboard;
   Root* mRoot;
-  SceneNode *mProfessorNode, *mNinjaNode;
+  SceneNode *mProfessorNode, *mFishNode, *mFishPivot;
 
 public:
   MainListener(Root* root, OIS::Keyboard *keyboard) : mKeyboard(keyboard), mRoot(root) 
   {
     mProfessorNode = mRoot->getSceneManager("main")->getSceneNode("Professor");
-    mNinjaNode = mRoot->getSceneManager("main")->getSceneNode("Fish");
+    mFishNode = mRoot->getSceneManager("main")->getSceneNode("Fish");
+	mFishPivot= mRoot->getSceneManager("main")->getSceneNode("Pivot");
+
+	mFishPivot->setInheritOrientation(false);
   }
 
   bool frameStarted(const FrameEvent &evt)
   {
     // Fill Here ----------------------------------------------
 
-	  /*static SceneNode * curNode = mProfessorNode;
+	  static float ProfessorVelocity = 75.0f;
+	  static float ProfessorDir = 1.0f;
+	  static float ProfessorRotateSpeed = 1.0f;
+	  static float ProfessorRotateIndex = 0;
+	  static float ProfessorRotateMax = 180;
+	  static float FishRotateSpeed = -1.0f;
 
-	  if (mKeyboard->isKeyDown(OIS::KC_P))
-		  curNode->pitch(Degree(1.0f));
-	  else if (mKeyboard->isKeyDown(OIS::KC_Y))
-		  curNode->yaw(Degree(1.0f));
-	  else if (mKeyboard->isKeyDown(OIS::KC_R))
-		  curNode->roll(Degree(1.0f));
-	  else if (mKeyboard->isKeyDown(OIS::KC_1))
-		  curNode = mProfessorNode;
-	  else if (mKeyboard->isKeyDown(OIS::KC_2))
-		  curNode = mNinjaNode;*/
+	  static Vector3 FishPivotPosition(0, 0, 0);
 
-	  static float professorVelocity = 100.0f;
-	  static float rotangle = 1.0f;				//물고기 회전변수
-	  rotangle += 0.5f;
-	  static int countnum=0;
+	  static int ProfessorState=MoveState;
 
-	  static int state=MoveState;
-
-	  if (state == MoveState)
+	  if (ProfessorState == MoveState)
 	  {
-		  if (mProfessorNode->getPosition().z<-250.f || mProfessorNode->getPosition().z>250.f)
+		  if (abs(mProfessorNode->getPosition().z)>=250.0f)
 		  {
-			  professorVelocity *= -1;
-			  state = RotateState;
+			  mProfessorNode->setPosition(0,0,250.0f*ProfessorDir);
+			  ProfessorDir *= -1;
+			  ProfessorState = RotateState;
 		  }
-		  mProfessorNode->translate(0, 0, professorVelocity * evt.timeSinceLastFrame);
+		  mProfessorNode->translate(0, 0, ProfessorDir*ProfessorVelocity * evt.timeSinceLastFrame);
 	  }
-	  else if (state == RotateState)
+	  else if (ProfessorState == RotateState)
 	  {
-		  mProfessorNode->yaw(Degree(1.0f));
-		  countnum++;
-		  if (countnum == 180)
+		  mProfessorNode->yaw(Degree(ProfessorRotateSpeed));
+		  ProfessorRotateIndex += ProfessorRotateSpeed;
+		  if (ProfessorRotateIndex >= ProfessorRotateMax)
 		  {
-			  state = MoveState;
-			  countnum = 0;
+			  ProfessorRotateIndex = 0.f;
+			  ProfessorState = MoveState;
 		  }
 	  }
 
-	  
-
-	  //mNinjaNode->translate(10 * cos(RADIAN(10)), 0, 10 * cos(RADIAN(10)));
-	  mNinjaNode->setPosition(100 * cos(rotangle * PI / 180), 0, 100 * sin(rotangle * PI / 180));
-
+	  mFishPivot->yaw(Degree(FishRotateSpeed));
+	  FishPivotPosition.z = mProfessorNode->getPosition().z;
+	  mFishPivot->setPosition(FishPivotPosition);
 
     // --------------------------------------------------------
 
@@ -177,10 +170,15 @@ public:
     SceneNode* node1 = mSceneMgr->getRootSceneNode()->createChildSceneNode("Professor", Vector3(0.0f, 0.0f, 0.0f));
     node1->attachObject(entity1);
 
+	SceneNode* pivotNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("Pivot", Vector3(0, 0, 0));
+
 	Entity* entity2 = mSceneMgr->createEntity("Fish", "fish.mesh");
-    SceneNode* node2 = node1->createChildSceneNode("Fish", Vector3(50.0f, 0.0f, 0.0f));
+	SceneNode* node2 = pivotNode->createChildSceneNode("Fish", Vector3(50.0f, 0.0f, 0.0f));
+	node2->yaw(Degree(90.0f));
     node2->attachObject(entity2);
 	node2->scale(5, 5, 5);
+
+
 
     mESCListener =new ESCListener(mKeyboard);
     mRoot->addFrameListener(mESCListener);
